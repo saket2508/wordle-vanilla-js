@@ -1,17 +1,97 @@
 import { wordList } from "./words.js";
 const board = document.getElementById("gameBoard");
 const keyboard = document.getElementById("gameKeyboard");
+let gameComplete = false;
+let wordsGuessed = [];
+let keyboardState = {};
+let boardStatus = [];
 let answer;
+let currIdx = 0;
+let currRow = 0;
+let control = -1;
+let currWord = "";
+
+function initGame() {
+  let today = JSON.parse(window.localStorage.getItem("today"));
+  let allGuesses = JSON.parse(window.localStorage.getItem("guesses"));
+  let keyboard = JSON.parse(window.localStorage.getItem("keyboardState"));
+  let board = JSON.parse(window.localStorage.getItem("boardStatus"));
+  if (today !== null) {
+    if (today.date === new Date().toLocaleDateString()) {
+      answer = today.word;
+      wordsGuessed = allGuesses === null ? [] : allGuesses;
+      keyboardState = keyboard === null ? {} : keyboard;
+      boardStatus = board === null ? [] : board;
+      if (wordsGuessed.length === 6) {
+        gameComplete = true;
+      }
+    } else {
+      today.date = new Date().toLocaleDateString();
+      today.word = fetchRandomWord();
+      window.localStorage.setItem("today", JSON.stringify(today));
+      answer = today.word;
+      window.localStorage.setItem(
+        "keyboardState",
+        JSON.stringify(keyboardState)
+      );
+      window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
+      window.localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
+    }
+  } else {
+    const today = {};
+    today.date = new Date().toLocaleDateString();
+    today.word = fetchRandomWord();
+    window.localStorage.setItem("today", JSON.stringify(today));
+    answer = today.word;
+    window.localStorage.setItem("keyboardState", JSON.stringify(keyboardState));
+    window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
+    window.localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
+  }
+}
 
 function initBoard() {
-  for (let i = 0; i < 30; i++) {
-    let cell = document.createElement("span");
-    cell.classList.add("letterCell");
-    cell.setAttribute("id", `cell${i}`);
-    cell.setAttribute("data-cell-index", i);
-    board.appendChild(cell);
+  if (wordsGuessed.length === 0) {
+    for (let i = 0; i < 30; i++) {
+      let cell = document.createElement("span");
+      cell.classList.add("letterCell");
+      cell.setAttribute("id", `cell${i}`);
+      cell.setAttribute("data-cell-index", i);
+      board.appendChild(cell);
+    }
+  } else {
+    currRow = wordsGuessed.length;
+    currIdx = 5 * currRow;
+    control = currIdx - 1;
+    let allChars = [];
+    let allStatuses = [];
+    for (let word of wordsGuessed) {
+      allChars = allChars.concat(...word);
+    }
+    for (let statusList of boardStatus) {
+      allStatuses = allStatuses.concat(...statusList);
+    }
+    for (let i = 0; i < 30; i++) {
+      let cell = document.createElement("span");
+      cell.classList.add("letterCell");
+      cell.setAttribute("id", `cell${i}`);
+      cell.setAttribute("data-cell-index", i);
+      let status = allStatuses[i];
+      let char = allChars[i];
+      if (status !== undefined && char !== undefined) {
+        cell.innerText = char;
+        // keyboard state wont be empty
+        if (status === "absent") {
+          cell.classList.add("gray");
+        } else if (status === "present") {
+          cell.classList.add("yellow");
+        } else {
+          cell.classList.add("green");
+        }
+      }
+      board.appendChild(cell);
+    }
   }
-};
+}
 
 function initKeyboard() {
   const order = ["QWERTYUINOP", "ASDFGHJKL", ">ZXCVBNM<"];
@@ -31,62 +111,48 @@ function initKeyboard() {
         keyBtn.innerHTML = "DEL";
       } else {
         keyBtn.innerHTML = key;
+        if (keyboardState[key] !== undefined) {
+          let state = keyboardState[key];
+          if (state === "present") {
+            keyBtn.classList.add("yellow");
+          } else if (state === "absent") {
+            keyBtn.classList.add("gray");
+          } else {
+            keyBtn.classList.add("green");
+          }
+        }
       }
       keyBtn.setAttribute("id", key);
-      keyBtn.setAttribute('role', 'button');
+      keyBtn.setAttribute("role", "button");
       newRow.appendChild(keyBtn);
     }
     keyboard.appendChild(newRow);
   }
-};
+}
 
-function fetchRandomWord(){
+function fetchRandomWord() {
   let randomVal = Math.random() * (wordList.length - 1);
   const randomWord = wordList[Math.floor(randomVal)];
   return randomWord.toUpperCase();
 }
 
-function initGame(){
-  let strVal = window.localStorage.getItem('today');
-  let today = JSON.parse(strVal);
-  if(today !== null){
-    if(today.date === new Date().toLocaleDateString()){
-      answer = today.word;
-    } else {
-      today.date = new Date().toLocaleDateString();
-      today.word = fetchRandomWord();
-      window.localStorage.setItem('today', JSON.stringify(today));
-      answer = today.word;
-    }
-  } else {
-    const today = {};
-    today.date = new Date().toLocaleDateString();
-    today.word = fetchRandomWord();
-    window.localStorage.setItem('today', JSON.stringify(today));
-    answer = today.word;
-  }
-}
-
-(function init(){
+(function init() {
+  initGame();
   initBoard();
   initKeyboard();
-  initGame();
-})()
-
-let currIdx = 0;
-let currRow = 0;
-let control = -1;
-let currWord = "";
-let wordsGuessed = [];
+})();
 
 function saveGuess() {
   if (!currWord || currWord.length < 5) {
     return;
   }
-  // check if word is in dictionary
-
   wordsGuessed.push(currWord);
-  // validate word guessed
+  if (!wordList.includes(currWord.toLowerCase())) {
+    // show user an alert that the word they entered is not valid.
+    console.log('word not found');
+    return;
+  }
+  let statuses = [];
   let start = currRow * 5;
   let end = start + 4;
   for (let i = start; i <= end; i++) {
@@ -95,15 +161,31 @@ function saveGuess() {
     let keyboardKey = document.getElementById(`${currWord[charIdx]}`);
     if (currWord[charIdx] === answer[charIdx]) {
       targetCell.classList.add("green");
-      keyboardKey.classList.add('green');
+      if(keyboardState[currWord[charIdx] === 'present']){
+        keyboardKey.classList.remove('yellow');
+      }
+      keyboardKey.classList.add("green");
+      keyboardState[currWord[charIdx]] = "correct";
+      statuses.push("correct");
     } else if (answer.includes(currWord[charIdx])) {
       targetCell.classList.add("yellow");
-      keyboardKey.classList.add('yellow')
+      if(keyboardState[currWord[charIdx]] !== 'correct'){
+        keyboardState[currWord[charIdx]] = "present";
+        keyboardKey.classList.add("yellow");
+      }
+      statuses.push("present");
     } else {
       targetCell.classList.add("gray");
-      keyboardKey.classList.add('gray');
+      keyboardKey.classList.add("gray");
+      keyboardState[currWord[charIdx]] = "absent";
+      statuses.push("absent");
     }
   }
+  boardStatus.push(statuses);
+  console.log(keyboardState);
+  localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
+  localStorage.setItem("keyboardState", JSON.stringify(keyboardState));
+  localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
   currWord = "";
   currIdx++;
   currRow++;
@@ -141,6 +223,9 @@ function logLetter(letterEntered) {
 }
 
 document.getElementById("gameKeyboard").onclick = function (event) {
+  if(gameComplete){
+    return;
+  }
   let item = event.target;
   if (item.getAttribute("role") !== "button") {
     return;
