@@ -7,10 +7,16 @@ body {
     user-select: none;
 }
 
-.heading {
-    color: white;
+p{
     margin: 0;
     padding: 0;
+}
+
+.heading {
+    color: white;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 0.2em;
 }
 
 .container{
@@ -23,8 +29,9 @@ body {
 }
 
 .board {
-    height: 360px;
-    width: 300px;
+    margin-top: 1.0rem;
+    height: 330px;
+    width: 273px;
     left: 0;
     right: 0;
     display: grid;
@@ -36,8 +43,8 @@ body {
 .letterCell {
     padding: 0;
     margin: 0;
-    height: 50px;
-    width: 50px;
+    height: 45px;
+    width: 45px;
     display: inline-flex;
     justify-content: center;
     align-items: center;
@@ -66,7 +73,7 @@ body {
 }
 
 .keyboard {
-    margin-top: 1.8rem;
+    margin-top: 1.6rem;
     max-width: 480px;
     display: flex;
     flex-direction: column;
