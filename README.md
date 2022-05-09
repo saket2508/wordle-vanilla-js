@@ -6,6 +6,6 @@
 
 ### Todos
 
-- [ ] Show user a message after they enter an invalid word.
+- [ ] Show a message if an invalid word is entered.
 
-- [ ] Show user the correct answer if they couldn't solve the puzzle, and also a way to let the user know they solved it.
+- [ ] Show the correct answer if the puzzle couldn't be solved.
