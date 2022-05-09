@@ -16,15 +16,14 @@ function initGame() {
   let allGuesses = JSON.parse(window.localStorage.getItem("guesses"));
   let keyboard = JSON.parse(window.localStorage.getItem("keyboardState"));
   let board = JSON.parse(window.localStorage.getItem("boardStatus"));
+  let gameStatus = JSON.parse(window.localStorage.getItem('gameStatus'));
   if (today !== null) {
     if (today.date === new Date().toLocaleDateString()) {
       answer = today.word;
       wordsGuessed = allGuesses === null ? [] : allGuesses;
       keyboardState = keyboard === null ? {} : keyboard;
       boardStatus = board === null ? [] : board;
-      if (wordsGuessed.length === 6) {
-        gameComplete = true;
-      }
+      gameComplete = gameStatus === null ? gameComplete : gameStatus;
     } else {
       today.date = new Date().toLocaleDateString();
       today.word = fetchRandomWord();
@@ -36,6 +35,7 @@ function initGame() {
       );
       window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
       window.localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
+      window.localStorage.setItem("gameStatus", JSON.stringify(gameComplete));
     }
   } else {
     const today = {};
@@ -46,6 +46,7 @@ function initGame() {
     window.localStorage.setItem("keyboardState", JSON.stringify(keyboardState));
     window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
     window.localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
+    window.localStorage.setItem("gameStatus", JSON.stringify(gameComplete));
   }
 }
 
@@ -94,7 +95,7 @@ function initBoard() {
 }
 
 function initKeyboard() {
-  const order = ["QWERTYUINOP", "ASDFGHJKL", ">ZXCVBNM<"];
+  const order = ["QWERTYUIOP", "ASDFGHJKL", ">ZXCVBNM<"];
   let rowIdx = 0;
   for (let row of order) {
     let keys = row.split("");
@@ -146,12 +147,12 @@ function saveGuess() {
   if (!currWord || currWord.length < 5) {
     return;
   }
-  wordsGuessed.push(currWord);
   if (!wordList.includes(currWord.toLowerCase())) {
     // show user an alert that the word they entered is not valid.
     console.log('word not found');
     return;
   }
+  wordsGuessed.push(currWord);
   let statuses = [];
   let start = currRow * 5;
   let end = start + 4;
@@ -161,10 +162,10 @@ function saveGuess() {
     let keyboardKey = document.getElementById(`${currWord[charIdx]}`);
     if (currWord[charIdx] === answer[charIdx]) {
       targetCell.classList.add("green");
-      if(keyboardState[currWord[charIdx] === 'present']){
+      keyboardKey.classList.add("green");
+      if(keyboardState[currWord[charIdx]] === 'present'){
         keyboardKey.classList.remove('yellow');
       }
-      keyboardKey.classList.add("green");
       keyboardState[currWord[charIdx]] = "correct";
       statuses.push("correct");
     } else if (answer.includes(currWord[charIdx])) {
@@ -181,11 +182,17 @@ function saveGuess() {
       statuses.push("absent");
     }
   }
+  if(wordsGuessed.length === 6){
+    gameComplete = true;
+  }
+  if(!statuses.includes('absent') && !statuses.includes('present')){
+    gameComplete = true;
+  }
   boardStatus.push(statuses);
-  console.log(keyboardState);
-  localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
-  localStorage.setItem("keyboardState", JSON.stringify(keyboardState));
-  localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
+  window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
+  window.localStorage.setItem("keyboardState", JSON.stringify(keyboardState));
+  window.localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
+  window.localStorage.setItem("gameStatus", JSON.stringify(gameComplete));
   currWord = "";
   currIdx++;
   currRow++;
