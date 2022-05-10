@@ -16,7 +16,7 @@ function initGame() {
   let allGuesses = JSON.parse(window.localStorage.getItem("guesses"));
   let keyboard = JSON.parse(window.localStorage.getItem("keyboardState"));
   let board = JSON.parse(window.localStorage.getItem("boardStatus"));
-  let gameStatus = JSON.parse(window.localStorage.getItem('gameStatus'));
+  let gameStatus = JSON.parse(window.localStorage.getItem("gameStatus"));
   if (today !== null) {
     if (today.date === new Date().toLocaleDateString()) {
       answer = today.word;
@@ -149,7 +149,8 @@ function saveGuess() {
   }
   if (!wordList.includes(currWord.toLowerCase())) {
     // show user an alert that the word they entered is not valid.
-    console.log('word not found');
+    console.log("word not found");
+    showAlert('Not in word list');
     return;
   }
   wordsGuessed.push(currWord);
@@ -163,14 +164,14 @@ function saveGuess() {
     if (currWord[charIdx] === answer[charIdx]) {
       targetCell.classList.add("green");
       keyboardKey.classList.add("green");
-      if(keyboardState[currWord[charIdx]] === 'present'){
-        keyboardKey.classList.remove('yellow');
+      if (keyboardState[currWord[charIdx]] === "present") {
+        keyboardKey.classList.remove("yellow");
       }
       keyboardState[currWord[charIdx]] = "correct";
       statuses.push("correct");
     } else if (answer.includes(currWord[charIdx])) {
       targetCell.classList.add("yellow");
-      if(keyboardState[currWord[charIdx]] !== 'correct'){
+      if (keyboardState[currWord[charIdx]] !== "correct") {
         keyboardState[currWord[charIdx]] = "present";
         keyboardKey.classList.add("yellow");
       }
@@ -182,11 +183,13 @@ function saveGuess() {
       statuses.push("absent");
     }
   }
-  if(wordsGuessed.length === 6){
+  if (!statuses.includes("absent") && !statuses.includes("present")) {
     gameComplete = true;
+    showAlert('Yayy :) You solved the puzzle');
   }
-  if(!statuses.includes('absent') && !statuses.includes('present')){
+  else if (wordsGuessed.length === 6) {
     gameComplete = true;
+    showAlert(`The correct answer was ${answer.toUpperCase()}`);
   }
   boardStatus.push(statuses);
   window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
@@ -202,14 +205,12 @@ function deleteLetter() {
   if (currIdx % 5 === 0) {
     return;
   }
-  let delIdx;
-  if (currIdx === control) {
-    delIdx = control;
-    control--;
-  } else {
-    delIdx = control;
+  let delIdx = control;
+  if (currIdx !== control) {
     control--;
     currIdx--;
+  } else {
+    control--;
   }
   let activeCell = document.getElementById(`cell${delIdx}`);
   activeCell.innerText = "";
@@ -229,8 +230,15 @@ function logLetter(letterEntered) {
   }
 }
 
+function showAlert(msg){
+  const snackbar = document.getElementById('snackbar');
+  snackbar.classList.add('show');
+  snackbar.innerText = msg;
+  setTimeout(() => snackbar.classList.remove('show'), 3000);
+}
+
 document.getElementById("gameKeyboard").onclick = function (event) {
-  if(gameComplete){
+  if (gameComplete) {
     return;
   }
   let item = event.target;

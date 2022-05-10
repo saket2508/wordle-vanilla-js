@@ -6,6 +6,6 @@
 
 ### Todos
 
-- [ ] Show a message if an invalid word is entered.
+- [x] Show a message if an invalid word is entered.
 
-- [ ] Show the correct answer if the puzzle couldn't be solved.
+- [x] Show the correct answer if the puzzle couldn't be solved.
