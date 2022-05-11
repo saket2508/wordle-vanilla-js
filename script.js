@@ -5,7 +5,8 @@ let gameComplete = false;
 let wordsGuessed = [];
 let keyboardState = {};
 let boardStatus = [];
-let answer;
+let answer = '';
+let answerFreq = {};
 let currIdx = 0;
 let currRow = 0;
 let control = -1;
@@ -20,6 +21,7 @@ function initGame() {
   if (today !== null) {
     if (today.date === new Date().toLocaleDateString()) {
       answer = today.word;
+      answerFreq = getCharFreq(answer);
       wordsGuessed = allGuesses === null ? [] : allGuesses;
       keyboardState = keyboard === null ? {} : keyboard;
       boardStatus = board === null ? [] : board;
@@ -29,6 +31,7 @@ function initGame() {
       today.word = fetchRandomWord();
       window.localStorage.setItem("today", JSON.stringify(today));
       answer = today.word;
+      answerFreq = getCharFreq(answer);
       window.localStorage.setItem(
         "keyboardState",
         JSON.stringify(keyboardState)
@@ -43,6 +46,7 @@ function initGame() {
     today.word = fetchRandomWord();
     window.localStorage.setItem("today", JSON.stringify(today));
     answer = today.word;
+    answerFreq = getCharFreq(answer);
     window.localStorage.setItem("keyboardState", JSON.stringify(keyboardState));
     window.localStorage.setItem("boardStatus", JSON.stringify(boardStatus));
     window.localStorage.setItem("guesses", JSON.stringify(wordsGuessed));
@@ -137,6 +141,18 @@ function fetchRandomWord() {
   return randomWord.toUpperCase();
 }
 
+function getCharFreq(word){
+  let freq = {};
+  for (let char of word){
+    if(freq[char] === undefined){
+      freq[char] = 1;
+    } else {
+      freq[char]++;
+    }
+  }
+  return freq;
+}
+
 (function init() {
   initGame();
   initBoard();
@@ -154,33 +170,80 @@ function saveGuess() {
     return;
   }
   wordsGuessed.push(currWord);
-  let statuses = [];
+  let statuses = Array(5).fill('absent');
   let start = currRow * 5;
   let end = start + 4;
+  const colorFreq = {
+    green: {},
+    yellow: {},
+    gray: {}
+  }
+  let occ = {};
+  for(let char in answerFreq){
+    occ[char] = 0;
+  }
   for (let i = start; i <= end; i++) {
     let charIdx = i % 5;
     let targetCell = document.getElementById(`cell${i}`);
-    let keyboardKey = document.getElementById(`${currWord[charIdx]}`);
-    if (currWord[charIdx] === answer[charIdx]) {
-      targetCell.classList.add("green");
-      keyboardKey.classList.add("green");
-      if (keyboardState[currWord[charIdx]] === "present") {
-        keyboardKey.classList.remove("yellow");
+    const x = currWord[charIdx];
+    const y = answer[charIdx];
+    let keyboardKey = document.getElementById(`${x}`);
+    if (x === y) {
+      occ[x]++
+      if(x in colorFreq.green){
+        colorFreq.green[x].push(i);
+      } else {
+        colorFreq.green[x] = [i];
       }
-      keyboardState[currWord[charIdx]] = "correct";
-      statuses.push("correct");
-    } else if (answer.includes(currWord[charIdx])) {
-      targetCell.classList.add("yellow");
-      if (keyboardState[currWord[charIdx]] !== "correct") {
-        keyboardState[currWord[charIdx]] = "present";
-        keyboardKey.classList.add("yellow");
+      if(x in colorFreq.yellow && answerFreq[x] < occ[x]){
+        colorFreq.gray[x] = [];
+        for(let y = 0; y < occ[x] - answerFreq[x]; y++){
+          let posy = colorFreq.yellow[x].pop();
+          colorFreq.gray[x].push(posy);
+        }
+        if(colorFreq.yellow[x].length === 0){
+          delete colorFreq.yellow[x];
+        }
       }
-      statuses.push("present");
+    } else if (answerFreq[x] - occ[x] >= 1) {
+      occ[x]++;
+      if(x in colorFreq.yellow){
+        colorFreq.yellow[x].push(i);
+      } else {
+        colorFreq.yellow[x] = [i];
+      }
     } else {
       targetCell.classList.add("gray");
       keyboardKey.classList.add("gray");
-      keyboardState[currWord[charIdx]] = "absent";
-      statuses.push("absent");
+      keyboardState[x] = "absent";
+    }
+  }
+  const colorStatuses = {
+    green: 'correct',
+    yellow: 'present',
+    gray: 'absent'
+  };
+  for(let key in colorFreq){
+    for(const letter in colorFreq[key]){
+      const keyTarget = document.getElementById(`${letter}`);
+      if(keyboardState[letter] !== 'correct'){
+        if(keyTarget.classList.length > 1){
+          keyTarget.setAttribute('class', 'letterKey');
+        }
+        keyboardState[letter] = colorStatuses[key];
+        keyTarget.classList.add(key);
+      }
+    }
+    let vals = Object.values(colorFreq[key]);
+    let pos = [];
+    for(let x of vals){
+      pos = pos.concat(x);
+    }
+    for(let idx of pos){
+      let targetCell = document.getElementById(`cell${idx}`);
+      targetCell.classList.add(key);
+      let keyIdx = idx % 5;
+      statuses[keyIdx] = colorStatuses[key];
     }
   }
   if (!statuses.includes("absent") && !statuses.includes("present")) {
