@@ -153,10 +153,26 @@ function getCharFreq(word){
   return freq;
 }
 
+function showStatus(){
+  if(!gameComplete){
+    return;
+  }
+  if(boardStatus.length === 6){
+    if(boardStatus[5].includes('absent') || boardStatus[5].includes('present')){
+      showAlert(`The correct answer was ${answer.toUpperCase()}`);
+    } else {
+      showAlert('Yayy :) You solved the puzzle');
+    }
+  } else {
+    showAlert('Yayy :) You solved the puzzle');
+  }
+}
+
 (function init() {
   initGame();
   initBoard();
   initKeyboard();
+  showStatus();
 })();
 
 function saveGuess() {
